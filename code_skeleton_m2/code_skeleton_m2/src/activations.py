@@ -8,7 +8,7 @@ class Sigmoid:
 
     @staticmethod
     def gradient(z):
-        return np.exp(-z)/((1+np.exp(-z))**2)
+        return Sigmoid.forward(z)*(1 - Sigmoid.forward(z))
 
 class ReLU:
     @staticmethod

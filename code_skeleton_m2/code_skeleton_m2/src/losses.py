@@ -7,7 +7,7 @@ class MSE:
         :param y_pred: (array) Prediction vector
         :return: (flt)
         """
-        return np.mean((y_true - y_pred) ** 2)
+        return np.mean(np.square(y_true - y_pred) )
 
     @staticmethod
     def gradient(y_true, y_pred):

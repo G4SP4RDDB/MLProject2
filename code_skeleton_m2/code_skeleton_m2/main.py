@@ -46,8 +46,18 @@ def main(args):
 
     # Make a validation set (it can overwrite xtest, ytest)
     if not args.test:
-        ### WRITE YOUR CODE HERE
-        pass
+        val_size = int(0.2 * train_features.shape[0])
+        x_tr = train_features[val_size:]
+        x_val = train_features[:val_size]
+
+
+        if args.task == "regression":
+            y_tr = train_labels_reg[val_size:].reshape(-1, 1)
+            y_val = train_labels_reg[:val_size].reshape(-1, 1)
+        else:
+            y_tr = train_labels_classif[val_size:].reshape(-1, 1)
+            y_val = train_labels_classif[:val_size].reshape(-1, 1)
+
 
     ### WRITE YOUR CODE HERE to do any other data processing
 
@@ -62,22 +72,39 @@ def main(args):
         pass
 
     elif args.method == "mlp":
-        ### WRITE YOUR CODE HERE
-        pass
+        if args.task == "regression":
+            method_obj = MLP(dimensions = (13, 64, 32, 1), activations = (ReLU, Sigmoid, ReLU))
+        if args.task == "classification":
+            method_obj = MLP(dimensions = (13, 512, 256, 128, 64, 32, 5), activations = (ReLU, ReLU, ReLU, ReLU, ReLU, ReLU))
     else:
         raise ValueError(f"Unknown method: {args.method}")
 
     ## 4. Train and evaluate the method
 
     if args.task == "classification":
+        if args.method == "mlp":
+            method_obj.fit(x_tr, y_tr, loss=MSE, epochs=300, batch_size=32, learning_rate=1e-2)
+        else:
+            pass # to add for K-means
 
-        ### WRITE YOUR CODE HERE
-        pass
 
     elif args.task == "regression":
-        assert args.method != "kmeans", f"You should use kmeans as a classification method"
+        assert args.method != "kmeans", f"You should use kmeans as a classification method" #Only MLP for regression
+        method_obj.fit(x_tr, y_tr,  loss = MSE, epochs = 300, batch_size = 32, learning_rate=1e-3)
+    prediction = method_obj.predict(x_tr)
 
-        ### WRITE YOUR CODE HERE
+    print("Loss on TRAIN split: {}".format(MSE.loss(prediction, y_tr)))
+    if(args.task == "classification"):
+        print("Accuracy on TRAIN split: {}".format(accuracy_fn(prediction, y_tr)))
+
+    print("------------------------")
+
+    prediction = method_obj.predict(x_val)
+    print("Loss on VALIDATION split: {}".format(MSE.loss(prediction, y_val)))
+    if(args.task == "classification"):
+        print("Accuracy on VALIDATION split: {}".format(accuracy_fn(prediction, y_val)))
+
+
 
     ### WRITE YOUR CODE HERE if you want to add other outputs, visualization, etc.
 
