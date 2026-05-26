@@ -34,8 +34,15 @@ def main(args):
         feature_data['ytestreg'],feature_data['ytrainclassif'],feature_data['ytestclassif']
     )
 
+
+
     ## 2. Then we must prepare it. This is where you can create a validation set,
     #  normalize, add bias, etc.
+    means = np.mean(train_features, axis=0)
+    stds = np.std(train_features, axis=0)
+
+    train_features = normalize_fn(train_features, means, stds)
+    test_features = normalize_fn(test_features, means, stds)
 
     # Make a validation set (it can overwrite xtest, ytest)
     if not args.test:
