@@ -106,10 +106,13 @@ def main(args):
     if(args.task == "classification"):
         if args.method == "kmeans":
             pred_classes = prediction
+            true_classes = train_labels_classif[val_size:]
+            # print("Accuracy on TRAIN split: {}".format(accuracy_fn(pred_classes, true_classes)))
+            pass
         else:
             pred_classes = onehot_to_label(prediction)
-        true_classes = train_labels_classif[val_size:]
-        print("Accuracy on TRAIN split: {}".format(accuracy_fn(pred_classes, true_classes)))
+            true_classes = train_labels_classif[val_size:]
+            print("Accuracy on TRAIN split: {}".format(accuracy_fn(pred_classes, true_classes)))
 
     print("------------------------")
 
@@ -122,13 +125,33 @@ def main(args):
     if(args.task == "classification"):
         if args.method == "kmeans":
             pred_classes = prediction
+            true_classes = train_labels_classif[:val_size]
+            # print("Accuracy on VALIDATION split: {}".format(accuracy_fn(pred_classes, true_classes)))
+            pass
         else:
             pred_classes = onehot_to_label(prediction)
-        true_classes = train_labels_classif[:val_size]
-        print("Accuracy on VALIDATION split: {}".format(accuracy_fn(pred_classes, true_classes)))
+            true_classes = train_labels_classif[:val_size]
+            print("Accuracy on VALIDATION split: {}".format(accuracy_fn(pred_classes, true_classes)))
 
 
     ### WRITE YOUR CODE HERE if you want to add other outputs, visualization, etc.
+
+    if args.task == "classification" and args.method == "kmeans":
+        print(f"{'K':>2} | {'train acc':>10} | {'val acc':>10}")
+        print("-" * 34)
+
+        for k in range(1, args.K):
+            method_obj = KMeans(K=k, max_iters=args.max_iters)
+            method_obj.fit(x_tr, train_labels_classif[val_size:])
+
+            train_pred = method_obj.predict(x_tr)
+            val_pred = method_obj.predict(x_val)
+
+            train_acc = accuracy_fn(train_pred, train_labels_classif[val_size:])
+            val_acc = accuracy_fn(val_pred, train_labels_classif[:val_size])
+
+            print(f"{k:2d} | {train_acc:10.4f} | {val_acc:10.4f}")
+
 
 
 if __name__ == "__main__":
