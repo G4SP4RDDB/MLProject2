@@ -1,12 +1,14 @@
 import argparse
 import numpy as np
 
+from src.activations import SoftMax
+from src.losses import CrossEntropy
 from src.methods.dummy_methods import DummyClassifier
 from src.methods.mlp import MLP
 from src.losses import MSE
 from src.activations import Sigmoid, ReLU
 from src.methods.kmeans import KMeans
-from src.utils import normalize_fn, append_bias_term, accuracy_fn, macrof1_fn, mse_fn
+from src.utils import normalize_fn, append_bias_term, accuracy_fn, macrof1_fn, mse_fn, onehot_to_label, label_to_onehot
 import os
 
 np.random.seed(100)
@@ -55,8 +57,8 @@ def main(args):
             y_tr = train_labels_reg[val_size:].reshape(-1, 1)
             y_val = train_labels_reg[:val_size].reshape(-1, 1)
         else:
-            y_tr = train_labels_classif[val_size:].reshape(-1, 1)
-            y_val = train_labels_classif[:val_size].reshape(-1, 1)
+            y_tr = label_to_onehot(train_labels_classif[val_size:], C=3)
+            y_val = label_to_onehot(train_labels_classif[:val_size], C=3)
 
 
     ### WRITE YOUR CODE HERE to do any other data processing
@@ -75,7 +77,7 @@ def main(args):
         if args.task == "regression":
             method_obj = MLP(dimensions = (13, 64, 32, 1), activations = (ReLU, Sigmoid, ReLU))
         if args.task == "classification":
-            method_obj = MLP(dimensions = (13, 512, 256, 128, 64, 32, 5), activations = (ReLU, ReLU, ReLU, ReLU, ReLU, ReLU))
+            method_obj = MLP(dimensions = (13, 64 ,32, 3), activations = (ReLU, Sigmoid, SoftMax))
     else:
         raise ValueError(f"Unknown method: {args.method}")
 
@@ -83,26 +85,32 @@ def main(args):
 
     if args.task == "classification":
         if args.method == "mlp":
-            method_obj.fit(x_tr, y_tr, loss=MSE, epochs=300, batch_size=32, learning_rate=1e-2)
+            method_obj.fit(x_tr, y_tr, loss=CrossEntropy, epochs= 400, batch_size=32, learning_rate=args.lr)
         else:
             pass # to add for K-means
 
 
+
     elif args.task == "regression":
         assert args.method != "kmeans", f"You should use kmeans as a classification method" #Only MLP for regression
-        method_obj.fit(x_tr, y_tr,  loss = MSE, epochs = 300, batch_size = 32, learning_rate=1e-3)
+        method_obj.fit(x_tr, y_tr,  loss = MSE, epochs = 400, batch_size = 32, learning_rate=args.lr)
+
     prediction = method_obj.predict(x_tr)
 
     print("Loss on TRAIN split: {}".format(MSE.loss(prediction, y_tr)))
     if(args.task == "classification"):
-        print("Accuracy on TRAIN split: {}".format(accuracy_fn(prediction, y_tr)))
+        pred_classes = onehot_to_label(prediction)
+        true_classes = train_labels_classif[val_size:]
+        print("Accuracy on TRAIN split: {}".format(accuracy_fn(pred_classes, true_classes)))
 
     print("------------------------")
 
     prediction = method_obj.predict(x_val)
     print("Loss on VALIDATION split: {}".format(MSE.loss(prediction, y_val)))
     if(args.task == "classification"):
-        print("Accuracy on VALIDATION split: {}".format(accuracy_fn(prediction, y_val)))
+        pred_classes = onehot_to_label(prediction)
+        true_classes = train_labels_classif[:val_size]
+        print("Accuracy on VALIDATION split: {}".format(accuracy_fn(pred_classes, true_classes)))
 
 
 

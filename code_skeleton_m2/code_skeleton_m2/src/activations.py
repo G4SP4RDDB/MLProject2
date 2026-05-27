@@ -18,3 +18,13 @@ class ReLU:
     @staticmethod
     def gradient(z):
         return np.where(z < 0,0,1)
+
+class SoftMax:
+    @staticmethod
+    def forward(z):
+        z_stable = z - np.max(z, axis=1, keepdims=True)
+        exp_z = np.exp(z_stable)
+        return exp_z / np.sum(exp_z, axis=1, keepdims=True)
+    @staticmethod
+    def gradient(z):
+        return np.ones_like(z)
