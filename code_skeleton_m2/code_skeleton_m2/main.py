@@ -1,12 +1,10 @@
 import argparse
 import numpy as np
 
-from src.activations import SoftMax
-from src.losses import CrossEntropy
 from src.methods.dummy_methods import DummyClassifier
 from src.methods.mlp import MLP
-from src.losses import MSE
-from src.activations import Sigmoid, ReLU
+from src.losses import MSE, CrossEntropy
+from src.activations import Sigmoid, ReLU, SoftMax, Linear
 from src.methods.kmeans import KMeans
 from src.utils import normalize_fn, append_bias_term, accuracy_fn, macrof1_fn, mse_fn, onehot_to_label, label_to_onehot
 import os
@@ -54,14 +52,15 @@ def main(args):
 
 
         if args.task == "regression":
-            y_tr = train_labels_reg[val_size:].reshape(-1, 1)
-            y_val = train_labels_reg[:val_size].reshape(-1, 1)
+            y_mean = train_labels_reg[val_size:].mean()
+            y_std = train_labels_reg[val_size:].std()
+            y_tr = ((train_labels_reg[val_size:] - y_mean) / y_std).reshape(-1, 1)
+            y_val = ((train_labels_reg[:val_size] - y_mean) / y_std).reshape(-1, 1)
         else:
             y_tr = label_to_onehot(train_labels_classif[val_size:], C=3)
             y_val = label_to_onehot(train_labels_classif[:val_size], C=3)
 
 
-    ### WRITE YOUR CODE HERE to do any other data processing
 
     ## 3. Initialize the method you want to use.
 
@@ -75,7 +74,7 @@ def main(args):
 
     elif args.method == "mlp":
         if args.task == "regression":
-            method_obj = MLP(dimensions = (13, 64, 32, 1), activations = (ReLU, Sigmoid, ReLU))
+            method_obj = MLP(dimensions = (13, 64, 32, 1), activations=(ReLU, Sigmoid, Linear))
         if args.task == "classification":
             method_obj = MLP(dimensions = (13, 64 ,32, 3), activations = (ReLU, Sigmoid, SoftMax))
     else:
@@ -96,6 +95,9 @@ def main(args):
         method_obj.fit(x_tr, y_tr,  loss = MSE, epochs = 400, batch_size = 32, learning_rate=args.lr)
 
     prediction = method_obj.predict(x_tr)
+    if(args.task == "regression"):#denormalizing data
+        prediction = prediction*y_std + y_mean
+        y_tr = y_tr * y_std + y_mean
 
     print("Loss on TRAIN split: {}".format(MSE.loss(prediction, y_tr)))
     if(args.task == "classification"):
@@ -106,6 +108,10 @@ def main(args):
     print("------------------------")
 
     prediction = method_obj.predict(x_val)
+    if(args.task == "regression"):#denormalizing data
+        prediction = prediction*y_std + y_mean
+        y_val= y_val * y_std + y_mean
+
     print("Loss on VALIDATION split: {}".format(MSE.loss(prediction, y_val)))
     if(args.task == "classification"):
         pred_classes = onehot_to_label(prediction)

@@ -28,3 +28,12 @@ class SoftMax:
     @staticmethod
     def gradient(z):
         return np.ones_like(z)
+
+class Linear:
+    @staticmethod
+    def forward(z):
+        return z
+
+    @staticmethod
+    def gradient(z):
+        return np.ones_like(z)
