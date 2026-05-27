@@ -69,8 +69,7 @@ def main(args):
         method_obj = DummyClassifier(arg1=1, arg2=2)
 
     elif args.method == "kmeans":
-        ### WRITE YOUR CODE HERE
-        pass
+        method_obj = KMeans(K=args.K, max_iters=args.max_iters)
 
     elif args.method == "mlp":
         if args.task == "regression":
@@ -80,28 +79,35 @@ def main(args):
     else:
         raise ValueError(f"Unknown method: {args.method}")
 
+
+
     ## 4. Train and evaluate the method
 
     if args.task == "classification":
         if args.method == "mlp":
             method_obj.fit(x_tr, y_tr, loss=CrossEntropy, epochs= 400, batch_size=32, learning_rate=args.lr)
+        elif args.method == "kmeans":
+            method_obj.fit(x_tr, train_labels_classif[val_size:])
         else:
-            pass # to add for K-means
-
-
+            pass
 
     elif args.task == "regression":
         assert args.method != "kmeans", f"You should use kmeans as a classification method" #Only MLP for regression
         method_obj.fit(x_tr, y_tr,  loss = MSE, epochs = 400, batch_size = 32, learning_rate=args.lr)
+       
 
     prediction = method_obj.predict(x_tr)
+
     if(args.task == "regression"):#denormalizing data
         prediction = prediction*y_std + y_mean
         y_tr = y_tr * y_std + y_mean
+        print("Loss on TRAIN split: {}".format(MSE.loss(prediction, y_tr)))
 
-    print("Loss on TRAIN split: {}".format(MSE.loss(prediction, y_tr)))
     if(args.task == "classification"):
-        pred_classes = onehot_to_label(prediction)
+        if args.method == "kmeans":
+            pred_classes = prediction
+        else:
+            pred_classes = onehot_to_label(prediction)
         true_classes = train_labels_classif[val_size:]
         print("Accuracy on TRAIN split: {}".format(accuracy_fn(pred_classes, true_classes)))
 
@@ -111,13 +117,15 @@ def main(args):
     if(args.task == "regression"):#denormalizing data
         prediction = prediction*y_std + y_mean
         y_val= y_val * y_std + y_mean
+        print("Loss on VALIDATION split: {}".format(MSE.loss(prediction, y_val)))
 
-    print("Loss on VALIDATION split: {}".format(MSE.loss(prediction, y_val)))
     if(args.task == "classification"):
-        pred_classes = onehot_to_label(prediction)
+        if args.method == "kmeans":
+            pred_classes = prediction
+        else:
+            pred_classes = onehot_to_label(prediction)
         true_classes = train_labels_classif[:val_size]
         print("Accuracy on VALIDATION split: {}".format(accuracy_fn(pred_classes, true_classes)))
-
 
 
     ### WRITE YOUR CODE HERE if you want to add other outputs, visualization, etc.
