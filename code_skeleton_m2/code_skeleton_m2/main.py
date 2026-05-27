@@ -137,20 +137,22 @@ def main(args):
     ### WRITE YOUR CODE HERE if you want to add other outputs, visualization, etc.
 
     if args.task == "classification" and args.method == "kmeans":
-        print(f"{'K':>2} | {'train acc':>10} | {'val acc':>10}")
+        print(f"{'K':>2} | {'avg val acc':>10}")
         print("-" * 34)
 
         for k in range(1, args.K):
-            method_obj = KMeans(K=k, max_iters=args.max_iters)
-            method_obj.fit(x_tr, train_labels_classif[val_size:])
+            val_accs = []
 
-            train_pred = method_obj.predict(x_tr)
-            val_pred = method_obj.predict(x_val)
+            for _ in range(30):
+                method_obj = KMeans(K=k, max_iters=args.max_iters)
+                method_obj.fit(x_tr, train_labels_classif[val_size:])
 
-            train_acc = accuracy_fn(train_pred, train_labels_classif[val_size:])
-            val_acc = accuracy_fn(val_pred, train_labels_classif[:val_size])
+                val_pred = method_obj.predict(x_val)
+                val_acc = accuracy_fn(val_pred, train_labels_classif[:val_size])
+                val_accs.append(val_acc)
 
-            print(f"{k:2d} | {train_acc:10.4f} | {val_acc:10.4f}")
+        avg_val_acc = np.mean(val_accs)
+        print(f"{k:2d} | {avg_val_acc:10.4f}")
 
 
 
