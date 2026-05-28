@@ -1,5 +1,6 @@
 import numpy as np
 
+
 class MLP:
     def __init__(self, dimensions, activations):
         """
@@ -20,6 +21,7 @@ class MLP:
         self.learning_rate = None
 
         self.loss_function = None
+        self.class_weights = None
 
 
         #Weights and biases are initiated by index
@@ -77,7 +79,12 @@ class MLP:
         """
         # Determine partial derivative and delta for the output layer.
         y_pred = z[self.n_layers - 1]
-        delta = self.loss_function.gradient(y_true, y_pred) * self.activations[self.n_layers - 1].gradient(y_pred)
+
+        #to take gradient with weighted losses
+        if self.class_weights is not None:
+            delta = self.loss_function.gradient(y_true, y_pred, self.class_weights) * self.activations[self.n_layers - 1].gradient(y_pred)
+        else :
+            delta = self.loss_function.gradient(y_true, y_pred) * self.activations[self.n_layers - 1].gradient(y_pred)
 
         dw = np.dot(z[self.n_layers - 2].T, delta)
 
@@ -107,7 +114,7 @@ class MLP:
         self.w[index] -= self.learning_rate * dw
         self.b[index] -= self.learning_rate * np.mean(delta, 0)
 
-    def fit(self, x, y_true, loss, epochs, batch_size, learning_rate=1e-3):
+    def fit(self, x, y_true, loss, epochs, batch_size, learning_rate=1e-3, class_weights =None):
         """
         :param x: (array) Containing parameters
         :param y_true: (array) Containing one hot encoded labels.
@@ -116,7 +123,7 @@ class MLP:
         :param batch_size: (int)
         :param learning_rate: (flt)
         """
-
+        self.class_weights = class_weights
         if not x.shape[0] == y_true.shape[0]:
             raise ValueError("Length of x and y arrays don't match")
         # Initiate the loss object with the final activation function

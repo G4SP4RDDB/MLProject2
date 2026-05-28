@@ -85,7 +85,10 @@ def main(args):
 
     if args.task == "classification":
         if args.method == "mlp":
-            method_obj.fit(x_tr, y_tr, loss=CrossEntropy, epochs= 400, batch_size=32, learning_rate=args.lr)
+            counts = np.bincount(train_labels_classif[val_size:].astype(int))
+            class_weights = 1.0 / counts
+            class_weights = class_weights / class_weights.sum()
+            method_obj.fit(x_tr, y_tr, loss=CrossEntropy, epochs= 800, batch_size=32, learning_rate=args.lr, class_weights=class_weights)
         elif args.method == "kmeans":
             method_obj.fit(x_tr, train_labels_classif[val_size:])
         else:
@@ -107,14 +110,14 @@ def main(args):
         if args.method == "kmeans":
             pred_classes = prediction
             true_classes = train_labels_classif[val_size:]
-            # print("Accuracy on TRAIN split: {}".format(accuracy_fn(pred_classes, true_classes)))
-            pass
         else:
             pred_classes = onehot_to_label(prediction)
             true_classes = train_labels_classif[val_size:]
-            print("Accuracy on TRAIN split: {}".format(accuracy_fn(pred_classes, true_classes)))
+        print("Accuracy on TRAIN split: {}".format(accuracy_fn(pred_classes, true_classes)))
+        print("F1-micro score on VALIDATION split: {}".format(macrof1_fn(pred_classes, true_classes)))
 
-    print("------------------------")
+
+    print("-" * 34)
 
     prediction = method_obj.predict(x_val)
     if(args.task == "regression"):#denormalizing data
@@ -126,15 +129,15 @@ def main(args):
         if args.method == "kmeans":
             pred_classes = prediction
             true_classes = train_labels_classif[:val_size]
-            # print("Accuracy on VALIDATION split: {}".format(accuracy_fn(pred_classes, true_classes)))
-            pass
         else:
             pred_classes = onehot_to_label(prediction)
             true_classes = train_labels_classif[:val_size]
-            print("Accuracy on VALIDATION split: {}".format(accuracy_fn(pred_classes, true_classes)))
+
+        print("Accuracy on VALIDATION split: {}".format(accuracy_fn(pred_classes, true_classes)))
+        print("F1-micro score on VALIDATION split: {}".format(macrof1_fn(pred_classes, true_classes)))
 
 
-    ### WRITE YOUR CODE HERE if you want to add other outputs, visualization, etc.
+    ### Graphs and hyper parameters choosing
 
     if args.task == "classification" and args.method == "kmeans":
         print(f"{'K':>2} | {'avg val acc':>10}")
@@ -150,9 +153,9 @@ def main(args):
                 val_pred = method_obj.predict(x_val)
                 val_acc = accuracy_fn(val_pred, train_labels_classif[:val_size])
                 val_accs.append(val_acc)
-
         avg_val_acc = np.mean(val_accs)
         print(f"{k:2d} | {avg_val_acc:10.4f}")
+
 
 
 
