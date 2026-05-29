@@ -74,6 +74,16 @@ def main(args):
             y_tr = label_to_onehot(train_labels_classif, C=3)
             y_val = label_to_onehot(test_labels_classif, C=3)
 
+    if args.method == "kmeans" and args.task == "classification": 
+        means_train = np.mean(train_features, axis=0)
+        stds_train = np.std(train_features, axis=0)
+
+        means_test = np.mean(test_features, axis=0)
+        stds_test = np.std(test_features, axis=0)
+
+        train_features = normalize_fn(train_features, means_train, stds_train)
+        test_features = normalize_fn(test_features, means_test, stds_test)
+
 
     ## 3. Initialize the method you want to use.
 
@@ -149,14 +159,14 @@ def main(args):
             true_classes = train_labels_classif[val_size:]
 
         print("Accuracy on TRAIN split: {}".format(accuracy_fn(pred_classes, true_classes)))
-        print("F1-micro score on VALIDATION split: {}".format(macrof1_fn(pred_classes, true_classes)))
+        print("F1-macro score on VALIDATION split: {}".format(macrof1_fn(pred_classes, true_classes)))
 
     if args.task == "classification" and args.method == "kmeans":
         pred_classes = method_obj.predict(train_features)
         true_classes = train_labels_classif
 
         print("Accuracy on TRAIN data: {}".format(accuracy_fn(pred_classes, true_classes)))
-        print("F1-micro score on TRAIN data: {}".format(macrof1_fn(pred_classes, true_classes)))
+        print("F1-macro score on TRAIN data: {}".format(macrof1_fn(pred_classes, true_classes)))
 
 
     print("-" * 34)
@@ -182,7 +192,7 @@ def main(args):
             true_classes = train_labels_classif[:val_size]
 
         print("Accuracy on VALIDATION split: {}".format(accuracy_fn(pred_classes, true_classes)))
-        print("F1-micro score on VALIDATION split: {}".format(macrof1_fn(pred_classes, true_classes)))
+        print("F1-macro score on VALIDATION split: {}".format(macrof1_fn(pred_classes, true_classes)))
 
     
     if args.task == "classification" and args.method == "kmeans":
@@ -190,27 +200,39 @@ def main(args):
         true_classes = test_labels_classif
         
         print("Accuracy on TEST data: {}".format(accuracy_fn(pred_classes, true_classes)))
-        print("F1-micro score on TEST data: {}".format(macrof1_fn(pred_classes, true_classes)))
+        print("F1-macro score on TEST data: {}".format(macrof1_fn(pred_classes, true_classes)))
 
 
     ### Graphs and hyper parameters choosing
 
     if args.task == "classification" and args.method == "kmeans":
-        print(f"{'K':>2} | {'avg val acc':>10}")
-        print("-" * 34)
+
+
+        print("\n K | avg train acc | avg train f1 | avg test acc | avg test f1")
+        print("-" * 34 * 2)
 
         for k in range(1, args.K):
-            val_accs = []
+            train_accuracies = []
+            train_f1_scores = []
+            test_accuracies = []
+            test_f1_scores = []
 
-            for _ in range(30):
+            true_test_classes = test_labels_classif
+            true_train_classes = train_labels_classif
+
+            for _ in range(60):
                 method_obj = KMeans(K=k, max_iters=args.max_iters)
-                method_obj.fit(x_tr, train_labels_classif[val_size:])
+                method_obj.fit(train_features, train_labels_classif)
 
-                val_pred = method_obj.predict(x_val)
-                val_acc = accuracy_fn(val_pred, train_labels_classif[:val_size])
-                val_accs.append(val_acc)
-            avg_val_acc = np.mean(val_accs)
-            print(f"{k:2d} | {avg_val_acc:10.4f}")
+                pred_train_classes = method_obj.predict(train_features)
+                train_accuracies.append(accuracy_fn(pred_train_classes, true_train_classes))
+                train_f1_scores.append(macrof1_fn(pred_train_classes, true_train_classes))
+
+                pred_test_classes = method_obj.predict(test_features)
+                test_accuracies.append(accuracy_fn(pred_test_classes, true_test_classes))
+                test_f1_scores.append(macrof1_fn(pred_test_classes, true_test_classes))
+
+            print(f"{k:2d} | {np.mean(train_accuracies):13.4f} | {np.mean(train_f1_scores):12.4f} | {np.mean(test_accuracies):12.4f} | {np.mean(test_f1_scores):12.4f}")
 
     #graph for mlp losses by epochs
     if args.task == "classification" and args.method == "mlp":
