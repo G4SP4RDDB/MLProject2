@@ -78,11 +78,11 @@ def main(args):
         means_train = np.mean(train_features, axis=0)
         stds_train = np.std(train_features, axis=0)
 
-        means_test = np.mean(test_features, axis=0)
-        stds_test = np.std(test_features, axis=0)
+        # means_test = np.mean(test_features, axis=0)
+        # stds_test = np.std(test_features, axis=0)
 
         train_features = normalize_fn(train_features, means_train, stds_train)
-        test_features = normalize_fn(test_features, means_test, stds_test)
+        test_features = normalize_fn(test_features, means_train, stds_train)
 
 
     ## 3. Initialize the method you want to use.
