@@ -124,7 +124,10 @@ def main(args):
     if args.task == "classification":
         if args.method == "mlp":
             #cross entropy with weights for classes
-            counts = np.bincount(train_labels_classif.astype(int))
+            if not args.test:
+                counts = np.bincount(train_labels_classif[val_size:].astype(int))
+            else:
+                counts = np.bincount(train_labels_classif.astype(int))
             class_weights = 1.0 / np.sqrt(counts) # to make weights not that heavy
             class_weights = class_weights / class_weights.sum()
             method_obj.fit(x_tr, y_tr, loss=CrossEntropy, epochs= args.epochs, batch_size=32, learning_rate=args.lr, class_weights=class_weights)
