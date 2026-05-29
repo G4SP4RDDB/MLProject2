@@ -39,7 +39,6 @@ def main(args):
 
 
 
-
     ## 2. Then we must prepare it. This is where you can create a validation set,
     #  normalize, add bias, etc.
     means = np.mean(train_features, axis=0)
@@ -77,11 +76,6 @@ def main(args):
         else:
             y_tr = label_to_onehot(train_labels_classif, C=3)
             y_val = label_to_onehot(test_labels_classif, C=3)
-
-
-
-
-
 
 
     ## 3. Initialize the method you want to use.
@@ -127,8 +121,10 @@ def main(args):
             class_weights = 1.0 / np.sqrt(counts) # to make weights not that heavy
             class_weights = class_weights / class_weights.sum()
             method_obj.fit(x_tr, y_tr, loss=CrossEntropy, epochs= args.epochs, batch_size=32, learning_rate=args.lr, class_weights=class_weights)
+        
         elif args.method == "kmeans":
-            method_obj.fit(x_tr, train_labels_classif)
+            method_obj.fit(train_features, train_labels_classif)
+
         else:
             pass
 
@@ -137,18 +133,17 @@ def main(args):
         method_obj.fit(x_tr, y_tr,  loss = MSE, epochs = args.epochs, batch_size = 32, learning_rate=args.lr)
        
 
-    prediction = method_obj.predict(x_tr)
+    if not args.task == "kmeans":
+        prediction = method_obj.predict(x_tr)
+    
 
     if(args.task == "regression"):#denormalizing data
         prediction = prediction*y_std + y_mean
         y_tr = y_tr * y_std + y_mean
         print("Loss on TRAIN split: {}".format(MSE.loss(prediction, y_tr)))
 
-    if(args.task == "classification"):
-        if args.method == "kmeans":
-            pred_classes = prediction
-        else:
-            pred_classes = onehot_to_label(prediction)
+    if args.task == "classification" and args.method == "mlp":
+        pred_classes = onehot_to_label(prediction)
 
 
         if args.test:
@@ -159,16 +154,25 @@ def main(args):
         print("Accuracy on TRAIN split: {}".format(accuracy_fn(pred_classes, true_classes)))
         print("F1-micro score on VALIDATION split: {}".format(macrof1_fn(pred_classes, true_classes)))
 
+    if args.task == "classification" and args.method == "kmeans":
+        pred_classes = method_obj.predict(train_features)
+        true_classes = train_labels_classif
+
+        print("Accuracy on TRAIN data: {}".format(accuracy_fn(pred_classes, true_classes)))
+        print("F1-micro score on TRAIN data: {}".format(macrof1_fn(pred_classes, true_classes)))
+
 
     print("-" * 34)
 
-    prediction = method_obj.predict(x_val)
+    if not args.task == "kmeans":
+        prediction = method_obj.predict(x_val)
+
     if(args.task == "regression"):#denormalizing data
         prediction = prediction*y_std + y_mean
         y_val= y_val * y_std + y_mean
         print("Loss on VALIDATION split: {}".format(MSE.loss(prediction, y_val)))
 
-    if(args.task == "classification"):
+    if args.task == "classification" and args.method == "mlp":
         if args.method == "kmeans":
             pred_classes = prediction
         else:
@@ -182,6 +186,14 @@ def main(args):
 
         print("Accuracy on VALIDATION split: {}".format(accuracy_fn(pred_classes, true_classes)))
         print("F1-micro score on VALIDATION split: {}".format(macrof1_fn(pred_classes, true_classes)))
+
+    
+    if args.task == "classification" and args.method == "kmeans":
+        pred_classes = method_obj.predict(test_features)
+        true_classes = test_labels_classif
+        
+        print("Accuracy on TEST data: {}".format(accuracy_fn(pred_classes, true_classes)))
+        print("F1-micro score on TEST data: {}".format(macrof1_fn(pred_classes, true_classes)))
 
 
     ### Graphs and hyper parameters choosing
@@ -200,8 +212,8 @@ def main(args):
                 val_pred = method_obj.predict(x_val)
                 val_acc = accuracy_fn(val_pred, train_labels_classif[:val_size])
                 val_accs.append(val_acc)
-        avg_val_acc = np.mean(val_accs)
-        print(f"{k:2d} | {avg_val_acc:10.4f}")
+            avg_val_acc = np.mean(val_accs)
+            print(f"{k:2d} | {avg_val_acc:10.4f}")
 
     #graph for mlp losses by epochs
     if args.task == "classification" and args.method == "mlp":
