@@ -8,7 +8,9 @@ from src.losses import MSE, CrossEntropy
 from src.activations import Sigmoid, ReLU, SoftMax, Linear
 from src.methods.kmeans import KMeans
 from src.utils import normalize_fn, append_bias_term, accuracy_fn, macrof1_fn, mse_fn, onehot_to_label, label_to_onehot
+from src.dataVisualisation import *
 import os
+
 
 np.random.seed(100)
 
@@ -37,6 +39,7 @@ def main(args):
 
 
 
+
     ## 2. Then we must prepare it. This is where you can create a validation set,
     #  normalize, add bias, etc.
     means = np.mean(train_features, axis=0)
@@ -44,6 +47,7 @@ def main(args):
 
     train_features = normalize_fn(train_features, means, stds)
     test_features = normalize_fn(test_features, means, stds)
+    PCA(train_features,2,train_labels_classif)
 
     # Make a validation set (it can overwrite xtest, ytest)
     if not args.test:
@@ -73,6 +77,11 @@ def main(args):
         else:
             y_tr = label_to_onehot(train_labels_classif, C=3)
             y_val = label_to_onehot(test_labels_classif, C=3)
+
+
+
+
+
 
 
     ## 3. Initialize the method you want to use.
@@ -196,6 +205,7 @@ def main(args):
 
     #graph for mlp losses by epochs
     if args.task == "classification" and args.method == "mlp":
+        plt.figure()
         plt.plot(range(10, args.epochs + 1, 10), method_obj.train_losses)
         plt.xlabel("Epoch")
         plt.ylabel("Loss")
