@@ -1,5 +1,6 @@
 import argparse
 import numpy as np
+import matplotlib.pyplot as plt
 
 from src.methods.dummy_methods import DummyClassifier
 from src.methods.mlp import MLP
@@ -60,6 +61,18 @@ def main(args):
             y_tr = label_to_onehot(train_labels_classif[val_size:], C=3)
             y_val = label_to_onehot(train_labels_classif[:val_size], C=3)
 
+    else:
+        x_tr = train_features
+        x_val = test_features
+
+        if args.task == "regression":
+            y_mean = train_labels_reg.mean()
+            y_std = train_labels_reg.std()
+            y_tr = ((train_labels_reg - y_mean) / y_std).reshape(-1, 1)
+            y_val = ((test_labels_reg - y_mean) / y_std).reshape(-1, 1)
+        else:
+            y_tr = label_to_onehot(train_labels_classif, C=3)
+            y_val = label_to_onehot(test_labels_classif, C=3)
 
 
     ## 3. Initialize the method you want to use.
@@ -73,9 +86,24 @@ def main(args):
 
     elif args.method == "mlp":
         if args.task == "regression":
-            method_obj = MLP(dimensions = (13, 64, 32, 1), activations=(ReLU, Sigmoid, Linear))
+            if args.configuration == "simple":
+                method_obj = MLP(dimensions = (13, 64, 32, 1), activations=(ReLU, Sigmoid, Linear))
+
+            elif args.configuration == "deep":
+                method_obj = MLP(dimensions=(13, 64, 32, 16, 1), activations=(ReLU, Sigmoid, ReLU, Linear))
+
+            elif args.configuration == "wide":
+                method_obj = MLP(dimensions=(13, 128, 64, 3), activations=(ReLU, Sigmoid, Linear))
+
         if args.task == "classification":
-            method_obj = MLP(dimensions = (13, 64 ,32, 3), activations = (ReLU, Sigmoid, SoftMax))
+            if args.configuration == "simple":
+                method_obj = MLP(dimensions = (13, 64 ,32, 3), activations = (ReLU, ReLU, SoftMax))
+
+            elif args.configuration == "deep":
+                method_obj = MLP(dimensions=(13, 64, 32, 16, 3), activations=(ReLU, ReLU, ReLU, SoftMax))
+
+            elif args.configuration == "wide":
+                method_obj = MLP(dimensions=(13, 128, 64, 3), activations=(ReLU, ReLU, SoftMax))
     else:
         raise ValueError(f"Unknown method: {args.method}")
 
@@ -85,18 +113,19 @@ def main(args):
 
     if args.task == "classification":
         if args.method == "mlp":
-            counts = np.bincount(train_labels_classif[val_size:].astype(int))
-            class_weights = 1.0 / counts
+            #cross entropy with weights for classes
+            counts = np.bincount(train_labels_classif.astype(int))
+            class_weights = 1.0 / np.sqrt(counts) # to make weights not that heavy
             class_weights = class_weights / class_weights.sum()
-            method_obj.fit(x_tr, y_tr, loss=CrossEntropy, epochs= 800, batch_size=32, learning_rate=args.lr, class_weights=class_weights)
+            method_obj.fit(x_tr, y_tr, loss=CrossEntropy, epochs= args.epochs, batch_size=32, learning_rate=args.lr, class_weights=class_weights)
         elif args.method == "kmeans":
-            method_obj.fit(x_tr, train_labels_classif[val_size:])
+            method_obj.fit(x_tr, train_labels_classif)
         else:
             pass
 
     elif args.task == "regression":
         assert args.method != "kmeans", f"You should use kmeans as a classification method" #Only MLP for regression
-        method_obj.fit(x_tr, y_tr,  loss = MSE, epochs = 400, batch_size = 32, learning_rate=args.lr)
+        method_obj.fit(x_tr, y_tr,  loss = MSE, epochs = args.epochs, batch_size = 32, learning_rate=args.lr)
        
 
     prediction = method_obj.predict(x_tr)
@@ -109,10 +138,15 @@ def main(args):
     if(args.task == "classification"):
         if args.method == "kmeans":
             pred_classes = prediction
-            true_classes = train_labels_classif[val_size:]
         else:
             pred_classes = onehot_to_label(prediction)
+
+
+        if args.test:
+            true_classes = train_labels_classif
+        else:
             true_classes = train_labels_classif[val_size:]
+
         print("Accuracy on TRAIN split: {}".format(accuracy_fn(pred_classes, true_classes)))
         print("F1-micro score on VALIDATION split: {}".format(macrof1_fn(pred_classes, true_classes)))
 
@@ -128,9 +162,13 @@ def main(args):
     if(args.task == "classification"):
         if args.method == "kmeans":
             pred_classes = prediction
-            true_classes = train_labels_classif[:val_size]
         else:
             pred_classes = onehot_to_label(prediction)
+
+
+        if args.test:
+            true_classes = test_labels_classif
+        else:
             true_classes = train_labels_classif[:val_size]
 
         print("Accuracy on VALIDATION split: {}".format(accuracy_fn(pred_classes, true_classes)))
@@ -156,6 +194,14 @@ def main(args):
         avg_val_acc = np.mean(val_accs)
         print(f"{k:2d} | {avg_val_acc:10.4f}")
 
+    #graph for mlp losses by epochs
+    if args.task == "classification" and args.method == "mlp":
+        plt.plot(range(10, args.epochs + 1, 10), method_obj.train_losses)
+        plt.xlabel("Epoch")
+        plt.ylabel("Loss")
+        plt.title("Training Loss")
+        plt.savefig("loss_curve.png")
+        plt.show()
 
 
 
@@ -188,7 +234,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--lr",
         type=float,
-        default=1e-5,
+        default=1e-3,
         help="learning rate for methods with learning rate",
     )
     parser.add_argument(
@@ -203,6 +249,20 @@ if __name__ == "__main__":
         help="train on whole training data and evaluate on the test data, "
              "otherwise use a validation set",
     )
+    parser.add_argument(
+        "--configuration",
+        type=str,
+        default = "simple",
+        help="simple / wide / deep",
+    )
+    parser.add_argument(
+        "--epochs",
+        type=int,
+        default = 400,
+        help="epochs for methods which are iterative",
+    )
+
+
     # Feel free to add more arguments here if you need!
 
     args = parser.parse_args()

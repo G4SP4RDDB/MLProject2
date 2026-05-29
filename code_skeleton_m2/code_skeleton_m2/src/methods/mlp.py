@@ -22,6 +22,7 @@ class MLP:
 
         self.loss_function = None
         self.class_weights = None
+        self.train_losses = None # for losses visualization
 
 
         #Weights and biases are initiated by index
@@ -124,6 +125,7 @@ class MLP:
         :param learning_rate: (flt)
         """
         self.class_weights = class_weights
+        self.train_losses = []
         if not x.shape[0] == y_true.shape[0]:
             raise ValueError("Length of x and y arrays don't match")
         # Initiate the loss object with the final activation function
@@ -145,4 +147,6 @@ class MLP:
 
             if (i + 1) % 10 == 0:
                 z, _ = self.feed_forward(x)
-                print("Loss at epoch {}: {}".format(i + 1, self.loss_function.loss(y_true, z[self.n_layers - 1])))
+                current_loss = self.loss_function.loss(y_true, z[self.n_layers - 1])
+                self.train_losses.append(current_loss)
+                print("Loss at epoch {}: {}".format(i + 1, current_loss))
