@@ -37,23 +37,17 @@ def main(args):
         feature_data['ytestreg'],feature_data['ytrainclassif'],feature_data['ytestclassif']
     )
 
-
-
-    ## 2. Then we must prepare it. This is where you can create a validation set,
-    #  normalize, add bias, etc.
-    means = np.mean(train_features, axis=0)
-    stds = np.std(train_features, axis=0)
-
-    train_features = normalize_fn(train_features, means, stds)
-    test_features = normalize_fn(test_features, means, stds)
-    PCA(train_features,2,train_labels_classif)
-
-    # Make a validation set (it can overwrite xtest, ytest)
     if not args.test:
         val_size = int(0.2 * train_features.shape[0])
-        x_tr = train_features[val_size:]
-        x_val = train_features[:val_size]
+        x_tr_raw = train_features[val_size:]
+        x_val_raw = train_features[:val_size]
 
+        means = np.mean(x_tr_raw, axis=0)
+        stds = np.std(x_tr_raw, axis=0)
+
+        x_tr = normalize_fn(x_tr_raw, means, stds)
+        x_val = normalize_fn(x_val_raw, means, stds)
+        test_features = normalize_fn(test_features, means, stds)
 
         if args.task == "regression":
             y_mean = train_labels_reg[val_size:].mean()
@@ -65,8 +59,11 @@ def main(args):
             y_val = label_to_onehot(train_labels_classif[:val_size], C=3)
 
     else:
-        x_tr = train_features
-        x_val = test_features
+        means = np.mean(train_features, axis=0)
+        stds = np.std(train_features, axis=0)
+
+        x_tr = normalize_fn(train_features, means, stds)
+        x_val = normalize_fn(test_features, means, stds)
 
         if args.task == "regression":
             y_mean = train_labels_reg.mean()
@@ -90,13 +87,13 @@ def main(args):
     elif args.method == "mlp":
         if args.task == "regression":
             if args.configuration == "simple":
-                method_obj = MLP(dimensions = (13, 64, 32, 1), activations=(ReLU, Sigmoid, Linear))
+                method_obj = MLP(dimensions = (13, 64, 32, 1), activations=(ReLU, ReLU, Linear))
 
             elif args.configuration == "deep":
-                method_obj = MLP(dimensions=(13, 64, 32, 16, 1), activations=(ReLU, Sigmoid, ReLU, Linear))
+                method_obj = MLP(dimensions=(13, 64, 32, 16, 1), activations=(ReLU, ReLU, ReLU, Linear))
 
             elif args.configuration == "wide":
-                method_obj = MLP(dimensions=(13, 128, 64, 3), activations=(ReLU, Sigmoid, Linear))
+                method_obj = MLP(dimensions=(13, 128, 64, 1), activations=(ReLU, ReLU, Linear))
 
         if args.task == "classification":
             if args.configuration == "simple":
