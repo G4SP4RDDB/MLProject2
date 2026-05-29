@@ -12,13 +12,19 @@ feature_data = np.load("Data/features.npz", allow_pickle=True)
 train_features   = feature_data['xtrain']
 train_labels_reg = feature_data['ytrainreg']
 
-means = np.mean(train_features, axis=0)
-stds  = np.std(train_features, axis=0)
-train_features = normalize_fn(train_features, means, stds)
+perm = np.random.permutation(train_features.shape[0])
+train_features = train_features[perm]
+train_labels_reg = train_labels_reg[perm]
 
 val_size = int(0.2 * train_features.shape[0])
-x_tr  = train_features[val_size:]
-x_val = train_features[:val_size]
+x_tr_raw  = train_features[val_size:]
+x_val_raw = train_features[:val_size]
+
+means = np.mean(x_tr_raw, axis=0)
+stds  = np.std(x_tr_raw, axis=0)
+
+x_tr  = normalize_fn(x_tr_raw, means, stds)
+x_val = normalize_fn(x_val_raw, means, stds)
 
 y_mean   = train_labels_reg[val_size:].mean()
 y_std    = train_labels_reg[val_size:].std()

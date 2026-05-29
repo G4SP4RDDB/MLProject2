@@ -38,6 +38,11 @@ def main(args):
     )
 
     if not args.test:
+        perm = np.random.permutation(train_features.shape[0])
+        train_features = train_features[perm]
+        train_labels_classif = train_labels_classif[perm]
+        train_labels_reg = train_labels_reg[perm]
+
         val_size = int(0.2 * train_features.shape[0])
         x_tr_raw = train_features[val_size:]
         x_val_raw = train_features[:val_size]

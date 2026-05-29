@@ -13,18 +13,24 @@ feature_data = np.load("Data/features.npz", allow_pickle=True)
 train_features = feature_data['xtrain']
 train_labels_classif = feature_data['ytrainclassif']
 
-means = np.mean(train_features, axis=0)
-stds = np.std(train_features, axis=0)
-train_features = normalize_fn(train_features, means, stds)
+perm = np.random.permutation(train_features.shape[0])
+train_features = train_features[perm]
+train_labels_classif = train_labels_classif[perm]
 
 val_size = int(0.2 * train_features.shape[0])
-x_tr = train_features[val_size:]
-x_val = train_features[:val_size]
+x_tr_raw = train_features[val_size:]
+x_val_raw = train_features[:val_size]
+
+means = np.mean(x_tr_raw, axis=0)
+stds = np.std(x_tr_raw, axis=0)
+
+x_tr = normalize_fn(x_tr_raw, means, stds)
+x_val = normalize_fn(x_val_raw, means, stds)
 y_tr = label_to_onehot(train_labels_classif[val_size:], C=3)
 y_val = label_to_onehot(train_labels_classif[:val_size], C=3)
 true_val = train_labels_classif[:val_size]
 
-counts = np.bincount(train_labels_classif.astype(int))
+counts = np.bincount(train_labels_classif[val_size:].astype(int))
 class_weights = 1.0 / np.sqrt(counts)
 class_weights = class_weights / class_weights.sum()
 

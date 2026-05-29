@@ -50,7 +50,8 @@ class KMeans(object):
         ### WRITE YOUR CODE HERE
         N = data.shape[0]
         if self.K > N:
-            raise ValueError(f"K cannot be larger than the number of data points. It was {self.K} but there are only {N} data points.")
+            raise ValueError(f"K cannot be larger than the number of data points. "
+                             f"It was {self.K} but there are only {N} data points.")
             # print(f"K was clamped to the number of data points. It was {self.K} but there are only {N} data points.")
             # self.K = N
         
