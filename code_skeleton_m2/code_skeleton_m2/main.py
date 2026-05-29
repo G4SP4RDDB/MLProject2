@@ -149,7 +149,7 @@ def main(args):
             true_classes = train_labels_classif[val_size:]
 
         print("Accuracy on TRAIN split: {}".format(accuracy_fn(pred_classes, true_classes)))
-        print("F1-micro score on VALIDATION split: {}".format(macrof1_fn(pred_classes, true_classes)))
+        print("F1-micro score on TRAIN split: {}".format(macrof1_fn(pred_classes, true_classes)))
 
     if args.task == "classification" and args.method == "kmeans":
         pred_classes = method_obj.predict(train_features)
